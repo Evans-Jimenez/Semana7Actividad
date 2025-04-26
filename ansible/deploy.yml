@@ -1,0 +1,44 @@
+- name: Desplegar la infraestructura con Docker
+  hosts: local
+  become: yes
+  tasks:
+    - name: Actualizar paquetes
+      apt:
+        update_cache: yes
+
+    - name: Instalar Docker y Docker Compose
+      apt:
+        name:
+          - docker.io
+          - docker-compose
+        state: present
+
+    - name: Verificar si Docker está corriendo
+      service:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Clonar el repositorio del proyecto (opcional si no está en local)
+      git:
+        repo: "https://github.com/tu_usuario/don-pollo.git"
+        dest: "/home/usuario/don-pollo"
+      when: inventory_hostname != "localhost"
+
+    - name: Construir las imágenes de los contenedores
+      command: docker-compose build
+      args:
+        chdir: "/home/usuario/don-pollo"
+
+    - name: Iniciar los servicios con Docker Compose
+      command: docker-compose up -d
+      args:
+        chdir: "/home/usuario/don-pollo"
+
+    - name: Verificar que los contenedores estén corriendo
+      command: docker ps
+      register: result
+
+    - name: Mostrar resultado
+      debug:
+        msg: "{{ result.stdout }}"
